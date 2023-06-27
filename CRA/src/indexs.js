@@ -3,29 +3,33 @@ import { useState } from "react";
 import styles from "./index.module.css";
 
 export default function Home() {
-  const [animalInput, setAnimalInput] = useState("");
+  const [file, setFile] = useState();
   const [result, setResult] = useState();
 
   async function onSubmit(event) {
     event.preventDefault();
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+
       const response = await fetch("/api/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ animal: animalInput }),
+        body: formData,
       });
 
-      const data = await response.json();
       if (response.status !== 200) {
-        throw data.error || new Error(`Request failed with status ${response.status}`);
+        throw new Error(`Request failed with status ${response.status}`);
       }
 
-      setResult(data.result);
-      setAnimalInput("");
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'result.docx');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
     } catch(error) {
-      // Consider implementing your own error handling logic here
       console.error(error);
       alert(error.message);
     }
@@ -40,16 +44,14 @@ export default function Home() {
 
       <main className={styles.main}>
         <img src="/dog.png" className={styles.icon} />
-        <h3>Name my pet</h3>
+        <h3>Upload a doc/docx file</h3>
         <form onSubmit={onSubmit}>
           <input
-            type="text"
-            name="animal"
-            placeholder="Enter an animal"
-            value={animalInput}
-            onChange={(e) => setAnimalInput(e.target.value)}
+            type="file"
+            name="file"
+            onChange={(e) => setFile(e.target.files[0])}
           />
-          <input type="submit" value="Generate names" />
+          <input type="submit" value="Generate new file" />
         </form>
         <div className={styles.result}>{result}</div>
       </main>
